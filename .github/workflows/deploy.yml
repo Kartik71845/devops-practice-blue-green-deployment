@@ -10,9 +10,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1️⃣ Checkout repo
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # 2️⃣ Setup SSH
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
@@ -20,9 +22,18 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
+      # 3️⃣ Copy app & nginx files to EC2
+      - name: Copy files to EC2
+        run: |
+          rsync -avz app/ ubuntu@${{ secrets.EC2_HOST }}:~/app/
+          rsync -avz nginx/ ubuntu@${{ secrets.EC2_HOST }}:~/nginx/
+
+      # 4️⃣ Deploy using Blue-Green strategy
       - name: Deploy application
         run: |
           ssh ubuntu@${{ secrets.EC2_HOST }} << 'EOF'
+
+          set -e
 
           ACTIVE_COLOR=$(cat /var/app/active_color)
 
